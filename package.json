@@ -1,6 +1,6 @@
 {
   "name": "@supersuit/bring-up",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "To Bring Up: each person's private list of things to raise the next time they talk. Rules, a Firestore store, Next.js route handlers and a React list, for any app that says who is signed in and where items are kept.",
   "type": "module",
   "exports": {
