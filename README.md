@@ -58,10 +58,15 @@ for you. The host must:
 
 ### `isRefusal`
 
-By default only this package's own `RuleError` is shown to a client, with its message and status.
-Every other error is logged on the server and answers an opaque 500. An app with refusals of its
-own passes `isRefusal` to say which of its errors may be shown; an error is never shown merely
-because it carries a 4xx status.
+This package's own refusals (`RuleError`) always reach the client with their message and status:
+403 `private` for a stranger, 401 `unauthorized` for an agent without a valid key, 404 `not found`
+for an item that is not yours, 400 for a body it cannot take. Every other error is logged on the
+server and answers an opaque 500.
+
+An app with refusals of its own passes `isRefusal` to say which of ITS errors may be shown too. The
+hook ADDS to the package's refusals and never replaces them. An error is never shown merely because
+it carries a 4xx status. A refusal answers with its `status` when that is 400-499, and 403 when it
+has none; a refusal carrying any other status is a bug and is answered as an internal error.
 
 ## Mounting the handlers
 

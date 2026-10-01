@@ -125,6 +125,106 @@ describe('the To Bring Up API', () => {
   })
 })
 
+describe('a host refusal hook ADDS to the package refusals, never replaces them', () => {
+  class HostError extends Error { constructor(m: string, public status?: number) { super(m) } }
+  const hooked = (signedIn: M | null, agent: M | null = null) => {
+    const { f, host } = setup(signedIn, agent)
+    return { f, h: createBringUpHandlers({ ...host, isRefusal: (e) => e instanceof HostError }) }
+  }
+
+  it('a stranger still gets 403 private', async () => {
+    const res = await hooked(null).h.list.GET(req('GET'))
+    expect(res.status).toBe(403)
+    await expect(res.json()).resolves.toEqual({ error: 'private' })
+  })
+
+  it('an agent without a valid key still gets 401 unauthorized', async () => {
+    const res = await hooked(null, null).h.agent.POST(req('POST', { text: 'x' }))
+    expect(res.status).toBe(401)
+    await expect(res.json()).resolves.toEqual({ error: 'unauthorized' })
+  })
+
+  it("someone else's item still answers 404 not found", async () => {
+    const res = await hooked('ana').h.item.PATCH(req('PATCH', { kind: 'done', value: true }), params('b1'))
+    expect(res.status).toBe(404)
+    await expect(res.json()).resolves.toEqual({ error: 'not found' })
+  })
+
+  it('an empty item still answers 400 with its words', async () => {
+    const { f, h } = hooked('ana')
+    const res = await h.list.POST(req('POST', { text: '   ' }))
+    expect(res.status).toBe(400)
+    await expect(res.json()).resolves.toEqual({ error: 'write something to bring up' })
+    expect(Object.keys(f.all('lists'))).toEqual(['a1', 'b1'])
+  })
+})
+
+describe('the status a refusal answers with', () => {
+  class HostError extends Error { constructor(m: string, public status?: number) { super(m) } }
+  const refusing = (status?: number) => {
+    const { host } = setup('ana')
+    return createBringUpHandlers({ ...host, member: async () => { throw new HostError('session expired', status) }, isRefusal: (e) => e instanceof HostError })
+  }
+
+  it('a refusal with no status answers 403 with its words', async () => {
+    const res = await refusing(undefined).list.GET(req('GET'))
+    expect(res.status).toBe(403)
+    await expect(res.json()).resolves.toEqual({ error: 'session expired' })
+  })
+
+  it('honours any status from 400 to 499', async () => {
+    expect((await refusing(400).list.GET(req('GET'))).status).toBe(400)
+    expect((await refusing(499).list.GET(req('GET'))).status).toBe(499)
+  })
+
+  for (const status of [0, 200, 302, 399, 500, 503, 600, 401.5, Number.NaN]) {
+    it(`a refusal claiming status ${status} is an internal error: logged, opaque 500`, async () => {
+      const spy = vi.spyOn(console, 'error').mockImplementation(() => {})
+      const res = await refusing(status).list.GET(req('GET'))
+      expect(res.status).toBe(500)
+      await expect(res.json()).resolves.toEqual({ error: 'something went wrong' })
+      expect(spy).toHaveBeenCalled()
+      spy.mockRestore()
+    })
+  }
+})
+
+describe('bodies the routes refuse', () => {
+  it('an agent POST with a bad body answers 400 and writes nothing', async () => {
+    const { f, h } = setup(null, 'ben')
+    const res = await h.agent.POST(req('POST', { text: 42 }))
+    expect(res.status).toBe(400)
+    await expect(res.json()).resolves.toEqual({ error: 'text must be a string' })
+    const raw = await h.agent.POST(req('POST', undefined, '{not json'))
+    expect(raw.status).toBe(400)
+    await expect(raw.json()).resolves.toEqual({ error: 'bad request' })
+    expect(Object.keys(f.all('lists'))).toEqual(['a1', 'b1'])
+  })
+
+  it('a PATCH with a bad body answers 400 and changes nothing', async () => {
+    const { f, h } = setup('ana')
+    const res = await h.item.PATCH(req('PATCH', { kind: 'done', value: 'yes' }), params('a1'))
+    expect(res.status).toBe(400)
+    await expect(res.json()).resolves.toEqual({ error: 'value must be a boolean' })
+    const unknown = await h.item.PATCH(req('PATCH', { kind: 'rename' }), params('a1'))
+    expect(unknown.status).toBe(400)
+    await expect(unknown.json()).resolves.toEqual({ error: 'unknown patch kind' })
+    expect(f.raw('lists', 'a1')).toMatchObject({ text: 'the trip', done: false })
+  })
+
+  it('an agentMember that throws is logged and answers an opaque 500', async () => {
+    const { f, host } = setup(null)
+    const h = createBringUpHandlers({ ...host, agentMember: async () => { throw new Error('key store down') } })
+    const spy = vi.spyOn(console, 'error').mockImplementation(() => {})
+    const res = await h.agent.POST(req('POST', { text: 'x' }))
+    expect(res.status).toBe(500)
+    await expect(res.json()).resolves.toEqual({ error: 'something went wrong' })
+    expect(spy).toHaveBeenCalled()
+    spy.mockRestore()
+    expect(Object.keys(f.all('lists'))).toEqual(['a1', 'b1'])
+  })
+})
+
 describe("the agent's entry point", () => {
   it('refuses a request without a valid agent key, 401, and writes nothing', async () => {
     const { f, h } = setup('ana', null)

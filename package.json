@@ -1,6 +1,6 @@
 {
   "name": "@supersuit/bring-up",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "To Bring Up: each person's private list of things to raise the next time they talk. Rules, a Firestore store, Next.js route handlers and a React list, for any app that says who is signed in and where items are kept.",
   "type": "module",
   "exports": {
@@ -30,7 +30,8 @@
     "test": "vitest run",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "check:private-words": "node scripts/private-words.mjs",
-    "check": "npm run typecheck && npm test && npm run build && npm run check:private-words && npm run check:consumer",
+    "check": "npm run typecheck && npm test && npm run build && npm run check:private-words && npm run check:comment-dates && npm run check:consumer",
+    "check:comment-dates": "node scripts/check-comment-dates.mjs",
     "check:consumer": "node scripts/check-consumer.mjs"
   },
   "engines": {

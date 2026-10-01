@@ -12,9 +12,11 @@ export interface BringUpHost<M extends string> {
   /** The list items are kept in, for example 'agenda'. */
   collection: string
   /**
-   * Whether an error is a refusal whose message and status go back to the client. Defaults to this
-   * package's own RuleError only; an app with refusals of its own passes its own check, so an error
-   * is never shown just because it carries a 4xx status.
+   * Which of the app's OWN errors are refusals whose message and status go back to the client. This
+   * ADDS to the package's own refusals, which always reach the client whatever this returns; leave
+   * it out and only the package's own are shown, so an error is never shown just because it
+   * carries a 4xx status. A refusal answers with its `status` when that is 400-499 (403 when it has
+   * none); any other status is treated as an internal error.
    */
   isRefusal?(err: unknown): boolean
 }

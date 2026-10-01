@@ -10,7 +10,8 @@ type IdParams = { params: Promise<{ id: string }> }
 // The route handlers an app mounts at its own addresses. There is no parameter anywhere that
 // names an owner: the list is always the signed-in person's, or the agent key's person's.
 export function createBringUpHandlers<M extends string>(host: BringUpHost<M>, store: BringUpStore<M> = createBringUpStore(host)) {
-  const handle = (fn: () => Promise<Response>) => handleWith(fn, host.isRefusal ?? isRuleError)
+  // The host's own refusals ADD to the package's: a RuleError always reaches the client with its words.
+  const handle = (fn: () => Promise<Response>) => handleWith(fn, (err) => isRuleError(err) || host.isRefusal?.(err) === true)
   const signedIn = async (req?: Request): Promise<M> => {
     const m = await host.member(req)
     if (!m) throw new RuleError('private', 403)
