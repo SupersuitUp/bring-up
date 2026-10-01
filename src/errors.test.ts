@@ -8,12 +8,11 @@ describe('a refusal', () => {
     expect(new RuleError('x', 400)).toBeInstanceOf(Error)
   })
 
-  it("is recognised by shape, so the host app's own refusals keep their words", () => {
-    class HostError extends Error { constructor(message: string, public status: number) { super(message) } }
+  it('is recognised as this package\'s own, and an error with a 4xx status alone is not one', () => {
+    class OtherError extends Error { constructor(message: string, public status: number) { super(message) } }
     expect(isRuleError(new RuleError('x', 409))).toBe(true)
-    expect(isRuleError(new HostError('upload not found or expired', 400))).toBe(true)
-    expect(isRuleError(new HostError('unauthorized', 401))).toBe(true)
-    expect(isRuleError(new HostError('boom', 500))).toBe(false)
+    expect(isRuleError(new OtherError('upload not found or expired', 400))).toBe(false)
+    expect(isRuleError(new OtherError('boom', 500))).toBe(false)
     expect(isRuleError(new Error('plain'))).toBe(false)
     expect(isRuleError({ message: 'not an Error', status: 400 })).toBe(false)
   })
