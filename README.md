@@ -6,8 +6,7 @@ exists: an item that is not yours answers exactly as one that does not exist. It
 off as they are talked about, and a person's own agent can add to their list from the desk.
 
 The package knows how the feature works. The app says who is signed in, which agent key acts as
-which person, where items are kept, and how they look. It was extracted from a private app that
-had run the feature for its two users.
+which person, where items are kept, and how they look.
 
 ## Install
 
@@ -35,7 +34,7 @@ add one line to the stylesheet that imports Tailwind, so the list's classes are 
 ```ts
 import type { BringUpHost } from '@supersuit/bring-up/server'
 
-export const host: BringUpHost<'ana' | 'ben'> = {
+export const host: BringUpHost<'a' | 'b'> = {
   member: async () => /* who is signed in, or null */ null,
   agentMember: async (req) => /* the person this request's agent key acts as, or null */ null,
   db: () => getFirestore(),   // called on use, never at import
@@ -84,7 +83,7 @@ gets 403, an agent without a valid key 401.
 
 ```tsx
 <BringUpProvider theme={{ serif, ink, muted, hairline, onInk }}>
-  <AgendaList initial={items} otherName="Ben" apiBase="/api/agenda" />
+  <AgendaList initial={items} otherName="the other person" apiBase="/api/agenda" />
 </BringUpProvider>
 ```
 
@@ -93,6 +92,6 @@ gets 403, an agent without a valid key 401.
 ## Releasing
 
 A release is a version tag. Bump `version` (`npm version <x.y.z> --no-git-tag-version`), add the
-CHANGELOG entry, commit `package.json` and `package-lock.json` together, push, then
+CHANGELOG entry, commit `package.json` and `package-lock.json` together (`npm ci` refuses a release whose lockfile does not match the version), push, then
 `git tag v<x.y.z> && git push origin v<x.y.z>`. GitHub Actions tests, builds and publishes through
 npm trusted publishing. Nothing is ever published from a laptop.
