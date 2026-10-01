@@ -25,12 +25,13 @@
     "LICENSE"
   ],
   "scripts": {
-    "build": "rm -rf dist && tsc -p tsconfig.build.json",
+    "build": "rm -rf dist && tsc -p tsconfig.build.json && node scripts/check-dist.mjs",
     "prepack": "npm run build",
     "test": "vitest run",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "check:private-words": "node scripts/private-words.mjs",
-    "check": "npm run typecheck && npm test && npm run build && npm run check:private-words"
+    "check": "npm run typecheck && npm test && npm run build && npm run check:private-words && npm run check:consumer",
+    "check:consumer": "node scripts/check-consumer.mjs"
   },
   "engines": {
     "node": ">=20.9"
