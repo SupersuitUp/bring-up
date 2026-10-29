@@ -2,6 +2,13 @@
 
 Version convention: below 1.0, an addition is a patch and a breaking change is a minor (npm reads `^0.1.2` as 0.1.x only, so templates take a patch on their own and hold a minor for a person).
 
+## 0.1.4 (2026-10-29)
+
+- The agent route takes `PATCH { id, kind, ... }`, so a person's own agent can change an item on
+  that ONE person's list (for example set or clear its `detail`) without the app. The key alone
+  decides whose list; an id that is not on it answers 404 `not found`, exactly as a missing one,
+  and a body with no `id` answers 400.
+
 ## 0.1.3 (2026-10-29)
 
 - An item can carry an optional `detail`: a longer note under its words (a full message, links),

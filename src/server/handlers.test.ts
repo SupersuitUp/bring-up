@@ -270,4 +270,27 @@ describe("the agent's entry point", () => {
     const { h } = setup(null, 'ben')
     expect((await (await h.agent.GET(req('GET'))).json()).map((a: { id: string }) => a.id)).toEqual(['b1'])
   })
+
+  it("changes an item on the key's person's list with PATCH { id, kind, ... }, and answers anyone else's 404", async () => {
+    const { f, h } = setup(null, 'ana')
+    const res = await h.agent.PATCH(req('PATCH', { id: 'a1', kind: 'detail', detail: 'the full message https://example.com' }))
+    expect(res.status).toBe(200)
+    await expect(res.json()).resolves.toMatchObject({ id: 'a1', detail: 'the full message https://example.com' })
+    expect(f.raw('lists', 'a1')).toMatchObject({ owner: 'ana', detail: 'the full message https://example.com' })
+    const theirs = await h.agent.PATCH(req('PATCH', { id: 'b1', kind: 'detail', detail: 'x' }))
+    expect(theirs.status).toBe(404)
+    await expect(theirs.json()).resolves.toEqual({ error: 'not found' })
+    expect('detail' in (f.raw('lists', 'b1') as object)).toBe(false)
+  })
+
+  it('an agent PATCH needs an id and a valid key, and writes nothing otherwise', async () => {
+    const before = setup(null, 'ana')
+    const noId = await before.h.agent.PATCH(req('PATCH', { kind: 'detail', detail: 'x' }))
+    expect(noId.status).toBe(400)
+    await expect(noId.json()).resolves.toEqual({ error: 'id must be a string' })
+    const { f, h } = setup('ana', null)
+    const noKey = await h.agent.PATCH(req('PATCH', { id: 'a1', kind: 'detail', detail: 'x' }))
+    expect(noKey.status).toBe(401)
+    expect('detail' in (f.raw('lists', 'a1') as object)).toBe(false)
+  })
 })
