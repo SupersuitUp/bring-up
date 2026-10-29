@@ -76,15 +76,16 @@ has none; a refusal carrying any other status is a bug and is answered as an int
 export const runtime = 'nodejs'
 export const { GET, POST, DELETE } = createBringUpHandlers(host).list
 // app/api/agenda/[id]/route.ts: export const { PATCH, DELETE } = createBringUpHandlers(host).item
-// app/api/agenda/agent/route.ts: export const { GET, POST } = createBringUpHandlers(host).agent
+// app/api/agenda/agent/route.ts: export const { GET, POST, PATCH } = createBringUpHandlers(host).agent
 ```
 
 `GET` lists the signed-in person's items, `POST { text, detail? }` adds one (201), and `DELETE` on
 the list clears what is checked off (`{ cleared }`). On an item, `PATCH { kind: 'done', value }`,
 `{ kind: 'text', text }` or `{ kind: 'detail', detail }` changes it, and `DELETE` removes it (204).
 A `detail` is an optional longer note under the words (up to 4,000 characters, as private as the
-words); an empty string or `null` clears it, and `AgendaList` opens it with a tap. The agent routes read and add
-to the one list the key's person owns. A refusal answers `{ error }` with its status; a stranger
+words); an empty string or `null` clears it, and `AgendaList` opens it with a tap. The agent routes read, add to and
+change (`PATCH { id, kind, ... }`, the same kinds as an item's PATCH) the one list the key's
+person owns. A refusal answers `{ error }` with its status; a stranger
 gets 403, an agent without a valid key 401.
 
 ## The screen

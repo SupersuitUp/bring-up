@@ -44,11 +44,19 @@ export function createBringUpHandlers<M extends string>(host: BringUpHost<M>, st
         return new Response(null, { status: 204 })
       }),
     },
-    // An agent (a person's own assistant, from their desk) adds to and reads that ONE person's list.
-    // Which person is decided by the key alone, so one agent can never write to another's list.
+    // An agent (a person's own assistant, from their desk) adds to, reads and changes that ONE
+    // person's list. Which person is decided by the key alone, so one agent can never write to
+    // another's list: PATCH names the item in its body ({ id, kind, ... }), and an id that is not
+    // on the key's person's list answers exactly as a missing one.
     agent: {
       GET: (req: Request) => handle(async () => Response.json(await store.listAgenda(await agent(req)))),
       POST: (req: Request) => handle(async () => add(await agent(req), req)),
+      PATCH: (req: Request) => handle(async () => {
+        const m = await agent(req)
+        const body = (await req.json()) as { id?: unknown } | null
+        if (typeof body?.id !== 'string' || !body.id.trim()) throw new RuleError('id must be a string', 400)
+        return Response.json(await store.patchAgendaItem(m, body.id, parseAgendaPatch(body)))
+      }),
     },
   }
 }
