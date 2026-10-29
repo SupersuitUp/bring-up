@@ -27,7 +27,8 @@ add one line to the stylesheet that imports Tailwind, so the list's classes are 
   for a home tile, `applyAgendaPatch`, ...).
 - `@supersuit/bring-up/server`: `createBringUpStore(host)` and `createBringUpHandlers(host)`.
   Server only.
-- `@supersuit/bring-up/client`: `AgendaList`, `BringUpProvider`, `setTheme`.
+- `@supersuit/bring-up/client`: `AgendaList`, `BringUpProvider`, `setTheme`, and `DetailText` (an
+  item's detail with its links clickable, for an app's own item page).
 
 ## The host
 
@@ -78,9 +79,11 @@ export const { GET, POST, DELETE } = createBringUpHandlers(host).list
 // app/api/agenda/agent/route.ts: export const { GET, POST } = createBringUpHandlers(host).agent
 ```
 
-`GET` lists the signed-in person's items, `POST { text }` adds one (201), and `DELETE` on the list
-clears what is checked off (`{ cleared }`). On an item, `PATCH { kind: 'done', value }` or
-`{ kind: 'text', text }` changes it, and `DELETE` removes it (204). The agent routes read and add
+`GET` lists the signed-in person's items, `POST { text, detail? }` adds one (201), and `DELETE` on
+the list clears what is checked off (`{ cleared }`). On an item, `PATCH { kind: 'done', value }`,
+`{ kind: 'text', text }` or `{ kind: 'detail', detail }` changes it, and `DELETE` removes it (204).
+A `detail` is an optional longer note under the words (up to 4,000 characters, as private as the
+words); an empty string or `null` clears it, and `AgendaList` opens it with a tap. The agent routes read and add
 to the one list the key's person owns. A refusal answers `{ error }` with its status; a stranger
 gets 403, an agent without a valid key 401.
 

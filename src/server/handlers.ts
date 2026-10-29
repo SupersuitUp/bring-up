@@ -23,8 +23,8 @@ export function createBringUpHandlers<M extends string>(host: BringUpHost<M>, st
     return m
   }
   const add = async (m: M, req: Request) => {
-    const body = (await req.json()) as { text?: unknown } | null
-    return Response.json(await store.addAgendaItem(m, body?.text), { status: 201 })
+    const body = (await req.json()) as { text?: unknown; detail?: unknown } | null
+    return Response.json(await store.addAgendaItem(m, body?.text, body?.detail), { status: 201 })
   }
 
   return {

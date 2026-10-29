@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { sortAgenda, AGENDA_TEXT_MAX, type AgendaItem } from '../rules.js'
 import { HAIRLINE, INK, MUTED, ON_INK, SERIF } from './theme.js'
 import { SectionLabel } from './section-label.js'
+import { DetailText } from './detail-text.js'
 
 // One member's own list of things to bring up when they next talk. Every change saves on tap and
 // snaps back if the save fails, like the notification switches.
@@ -13,6 +14,7 @@ export function AgendaList({ initial, otherName, apiBase }: { initial: AgendaIte
   const [draft, setDraft] = useState('')
   const [adding, setAdding] = useState(false)
   const [failed, setFailed] = useState(false)
+  const [openDetail, setOpenDetail] = useState<string | null>(null)
 
   const open = items.filter((a) => !a.done)
   const done = items.filter((a) => a.done)
@@ -66,25 +68,45 @@ export function AgendaList({ initial, otherName, apiBase }: { initial: AgendaIte
 
   const clearDone = () => save(open, apiBase, { method: 'DELETE' })
 
-  const row = (a: AgendaItem) => (
-    <li key={a.id} className="flex items-center gap-3 rounded-2xl px-3 py-2" style={{ backgroundColor: HAIRLINE }}>
-      <button type="button" role="checkbox" aria-checked={a.done} aria-label={a.text} onClick={() => toggle(a)}
-        className="flex h-11 w-11 shrink-0 items-center justify-center">
-        <span className="flex h-6 w-6 items-center justify-center rounded-full text-sm"
-          style={a.done ? { backgroundColor: INK, color: ON_INK } : { border: `1.5px solid ${MUTED}` }}>
-          {a.done ? '✓' : ''}
-        </span>
-      </button>
-      <span className="min-w-0 flex-1 break-words text-[17px] leading-snug"
-        style={{ fontFamily: SERIF, color: a.done ? MUTED : INK, textDecoration: a.done ? 'line-through' : 'none' }}>
-        {a.text}
-      </span>
-      <button type="button" aria-label={`Delete ${a.text}`} onClick={() => remove(a)}
-        className="flex h-11 w-11 shrink-0 items-center justify-center text-xl" style={{ color: MUTED }}>
-        ×
-      </button>
-    </li>
-  )
+  // An item with a detail carries a Details button under its words; a tap opens the note in place.
+  const row = (a: AgendaItem) => {
+    const expanded = openDetail === a.id
+    return (
+      <li key={a.id} className="rounded-2xl px-3 py-2" style={{ backgroundColor: HAIRLINE }}>
+        <div className="flex items-center gap-3">
+          <button type="button" role="checkbox" aria-checked={a.done} aria-label={a.text} onClick={() => toggle(a)}
+            className="flex h-11 w-11 shrink-0 items-center justify-center">
+            <span className="flex h-6 w-6 items-center justify-center rounded-full text-sm"
+              style={a.done ? { backgroundColor: INK, color: ON_INK } : { border: `1.5px solid ${MUTED}` }}>
+              {a.done ? '✓' : ''}
+            </span>
+          </button>
+          <div className="min-w-0 flex-1">
+            <span className="block break-words text-[17px] leading-snug"
+              style={{ fontFamily: SERIF, color: a.done ? MUTED : INK, textDecoration: a.done ? 'line-through' : 'none' }}>
+              {a.text}
+            </span>
+            {a.detail && (
+              <button type="button" aria-expanded={expanded} aria-controls={`detail-${a.id}`} aria-label={`Details for ${a.text}`}
+                onClick={() => setOpenDetail(expanded ? null : a.id)}
+                className="-ml-1 mt-0.5 inline-flex min-h-8 items-center px-1 text-sm" style={{ color: MUTED }}>
+                {expanded ? 'Hide details' : 'Details'}
+              </button>
+            )}
+          </div>
+          <button type="button" aria-label={`Delete ${a.text}`} onClick={() => remove(a)}
+            className="flex h-11 w-11 shrink-0 items-center justify-center text-xl" style={{ color: MUTED }}>
+            ×
+          </button>
+        </div>
+        {a.detail && expanded && (
+          <div id={`detail-${a.id}`} className="pb-2 pl-14 pr-3">
+            <DetailText text={a.detail} className="text-[15px] leading-relaxed" style={{ color: INK }} />
+          </div>
+        )}
+      </li>
+    )
+  }
 
   return (
     <div className="px-4">

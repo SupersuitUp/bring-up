@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { AgendaList } from './agenda-list.js'
+import { DetailText } from './detail-text.js'
 import { DEFAULT_THEME, setTheme } from './theme.js'
 import type { AgendaItem } from '../types.js'
 
@@ -70,5 +71,34 @@ describe('AgendaList', () => {
     setTheme({ ink: '#123456', onInk: '#fedcba' })
     render(<AgendaList initial={[]} otherName="Ben" apiBase={API} />)
     expect(screen.getByRole('button', { name: 'Add' })).toHaveStyle({ backgroundColor: '#123456', color: '#fedcba' })
+  })
+
+  it('opens and closes an item\'s detail with a tap, links clickable, and shows no button without one', () => {
+    render(<AgendaList initial={[
+      item({ id: 'a', text: 'the launch', detail: 'Read this first: https://example.com/a.\nThen the rest.' }),
+      item({ id: 'b', text: 'plain one', createdAt: '2026-09-30T10:00:00.000Z' }),
+    ]} otherName="Ben" apiBase={API} />)
+    expect(screen.getAllByRole('button', { name: /Details/ })).toHaveLength(1)
+    const toggle = screen.getByRole('button', { name: 'Details for the launch' })
+    expect(toggle.getAttribute('aria-expanded')).toBe('false')
+    expect(screen.queryByRole('link')).toBeNull()
+    fireEvent.click(toggle)
+    expect(toggle.getAttribute('aria-expanded')).toBe('true')
+    const link = screen.getByRole('link', { name: 'https://example.com/a' })
+    expect(link.getAttribute('href')).toBe('https://example.com/a')
+    expect(link.getAttribute('target')).toBe('_blank')
+    expect(link.getAttribute('rel')).toContain('noopener')
+    fireEvent.click(toggle)
+    expect(screen.queryByRole('link')).toBeNull()
+  })
+})
+
+describe('DetailText', () => {
+  it('links only http and https addresses, keeps trailing punctuation outside the link, and keeps line breaks', () => {
+    const { container } = render(<DetailText text={'see https://a.example/x?y=1, and (https://b.example/z).\njavascript:alert(1) stays text'} />)
+    const links = screen.getAllByRole('link')
+    expect(links.map((l) => l.getAttribute('href'))).toEqual(['https://a.example/x?y=1', 'https://b.example/z'])
+    expect(container.textContent).toContain('javascript:alert(1) stays text')
+    expect(container.firstElementChild?.className).toContain('whitespace-pre-wrap')
   })
 })

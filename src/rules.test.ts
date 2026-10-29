@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import {
-  AGENDA_TEXT_MAX, agendaTile, applyAgendaPatch, canSeeAgendaItem, parseAgendaPatch, sortAgenda, validateAgendaText,
+  AGENDA_DETAIL_MAX, AGENDA_TEXT_MAX, agendaTile, applyAgendaPatch, canSeeAgendaItem, parseAgendaPatch, sortAgenda,
+  validateAgendaDetail, validateAgendaText,
   type AgendaItem,
 } from './rules.js'
 import { RuleError } from './errors.js'
@@ -64,5 +65,34 @@ describe('agenda: what to bring up', () => {
       item({ id: 'z', text: 'old', done: true, doneAt: NOW, createdAt: '2026-09-29T08:00:00.000Z' }),
     ])
     expect(tile).toEqual({ open: 2, next: 'first' })
+  })
+
+  it('keeps a detail trimmed, treats empty as none, and refuses a non-string or too long', () => {
+    expect(validateAgendaDetail('  the full message, with https://example.com/a  ')).toBe('the full message, with https://example.com/a')
+    expect(validateAgendaDetail('line one\n\nline two')).toBe('line one\n\nline two')
+    expect(validateAgendaDetail(undefined)).toBeNull()
+    expect(validateAgendaDetail(null)).toBeNull()
+    expect(validateAgendaDetail('   ')).toBeNull()
+    expect(validateAgendaDetail('x'.repeat(AGENDA_DETAIL_MAX))).toHaveLength(AGENDA_DETAIL_MAX)
+    expect(() => validateAgendaDetail(42)).toThrow(RuleError)
+    expect(() => validateAgendaDetail('x'.repeat(AGENDA_DETAIL_MAX + 1))).toThrow(RuleError)
+    expect(AGENDA_DETAIL_MAX).toBe(4000)
+  })
+
+  it('parses a detail patch, a string to set and empty or null to clear', () => {
+    expect(parseAgendaPatch({ kind: 'detail', detail: 'more' })).toEqual({ kind: 'detail', detail: 'more' })
+    expect(parseAgendaPatch({ kind: 'detail', detail: null })).toEqual({ kind: 'detail', detail: null })
+    expect(() => parseAgendaPatch({ kind: 'detail' })).toThrow(RuleError)
+    expect(() => parseAgendaPatch({ kind: 'detail', detail: 7 })).toThrow(RuleError)
+  })
+
+  it('sets and clears the detail, only for its owner, and leaves the words alone', () => {
+    const withDetail = applyAgendaPatch(item(), 'ana', { kind: 'detail', detail: '  the whole note  ' }, NOW)
+    expect(withDetail).toMatchObject({ text: 'the trip in November', detail: 'the whole note' })
+    const cleared = applyAgendaPatch(withDetail, 'ana', { kind: 'detail', detail: '' }, NOW)
+    expect('detail' in cleared).toBe(false)
+    expect('detail' in applyAgendaPatch(withDetail, 'ana', { kind: 'detail', detail: null }, NOW)).toBe(false)
+    expect(applyAgendaPatch(withDetail, 'ana', { kind: 'text', text: 'new words' }, NOW).detail).toBe('the whole note')
+    expect(() => applyAgendaPatch(item(), 'ben', { kind: 'detail', detail: 'x' }, NOW)).toThrow(RuleError)
   })
 })

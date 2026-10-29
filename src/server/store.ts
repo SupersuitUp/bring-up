@@ -1,7 +1,7 @@
 import 'server-only'
 import type { DocumentSnapshot } from 'firebase-admin/firestore'
 import { RuleError } from '../errors.js'
-import { applyAgendaPatch, canSeeAgendaItem, sortAgenda, validateAgendaText } from '../rules.js'
+import { applyAgendaPatch, canSeeAgendaItem, sortAgenda, validateAgendaDetail, validateAgendaText, withAgendaDetail } from '../rules.js'
 import type { AgendaItem, AgendaPatch } from '../types.js'
 import type { BringUpHost } from './host.js'
 
@@ -17,9 +17,11 @@ export function createBringUpStore<M extends string>(host: Pick<BringUpHost<M>, 
     return sortAgenda(snap.docs.map(itemFrom).filter((a) => canSeeAgendaItem(a, m)))
   }
 
-  async function addAgendaItem(m: M, text: unknown): Promise<AgendaItem<M>> {
+  // A detail is optional; none writes no `detail` field, so the record is exactly as before.
+  async function addAgendaItem(m: M, text: unknown, detail?: unknown): Promise<AgendaItem<M>> {
     const ref = items().doc()
-    const data: Omit<AgendaItem<M>, 'id'> = { owner: m, text: validateAgendaText(text), done: false, doneAt: null, createdAt: new Date().toISOString() }
+    const base: Omit<AgendaItem<M>, 'id'> = { owner: m, text: validateAgendaText(text), done: false, doneAt: null, createdAt: new Date().toISOString() }
+    const data = withAgendaDetail(base, validateAgendaDetail(detail))
     await ref.set(data)
     return { id: ref.id, ...data }
   }

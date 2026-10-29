@@ -77,4 +77,25 @@ describe('the To Bring Up store', () => {
     await store.patchAgendaItem('ana', 'x1', { kind: 'text', text: 'kept, edited' })
     expect(f.raw('lists', 'x1')).toEqual({ ...item('ana', 'kept, edited', '2026-09-30T07:00:00.000Z'), extra: { n: 1 } })
   })
+
+  it('stores a detail with the item when one is given, and none when it is blank', async () => {
+    const { f, store } = setup()
+    const withDetail = await store.addAgendaItem('ana', 'the launch', '  the full message https://example.com  ')
+    expect(withDetail.detail).toBe('the full message https://example.com')
+    expect(f.raw('lists', withDetail.id)).toMatchObject({ text: 'the launch', detail: 'the full message https://example.com' })
+    const blank = await store.addAgendaItem('ana', 'no more', '   ')
+    expect('detail' in (f.raw('lists', blank.id) as object)).toBe(false)
+    await expect(store.addAgendaItem('ana', 'x', 'y'.repeat(4001))).rejects.toMatchObject({ status: 400 })
+  })
+
+  it('sets and clears a detail on an existing item, and returns it in the list', async () => {
+    const { f, store } = setup()
+    await store.patchAgendaItem('ana', 'a1', { kind: 'detail', detail: 'more to say' })
+    expect(f.raw('lists', 'a1')).toMatchObject({ text: 'later', detail: 'more to say' })
+    expect((await store.listAgenda('ana')).find((a) => a.id === 'a1')?.detail).toBe('more to say')
+    await store.patchAgendaItem('ana', 'a1', { kind: 'detail', detail: '' })
+    expect('detail' in (f.raw('lists', 'a1') as object)).toBe(false)
+    const err = await store.patchAgendaItem('ana', 'b1', { kind: 'detail', detail: 'x' }).catch((e: unknown) => e)
+    expect(err).toMatchObject({ status: 404, message: 'not found' })
+  })
 })
