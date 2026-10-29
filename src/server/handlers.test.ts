@@ -52,6 +52,29 @@ describe('the To Bring Up API', () => {
     await expect(res.json()).resolves.toMatchObject({ owner: 'ben', text: 'dinner', done: false, doneAt: null })
   })
 
+  it('adds with a detail, from the app and from an agent, and refuses one too long', async () => {
+    const { h } = setup('ana', 'ana')
+    const res = await h.list.POST(req('POST', { text: 'the launch', detail: ' the whole message ' }))
+    expect(res.status).toBe(201)
+    await expect(res.json()).resolves.toMatchObject({ text: 'the launch', detail: 'the whole message' })
+    const viaAgent = await h.agent.POST(req('POST', { text: 'from the desk', detail: 'with links https://example.com' }))
+    expect(viaAgent.status).toBe(201)
+    await expect(viaAgent.json()).resolves.toMatchObject({ owner: 'ana', detail: 'with links https://example.com' })
+    const tooLong = await h.agent.POST(req('POST', { text: 'x', detail: 'y'.repeat(4001) }))
+    expect(tooLong.status).toBe(400)
+  })
+
+  it("sets and clears a detail with PATCH, and never on someone else's item", async () => {
+    const { f, h } = setup('ana')
+    expect((await h.item.PATCH(req('PATCH', { kind: 'detail', detail: 'the note' }), params('a1'))).status).toBe(200)
+    expect(f.raw('lists', 'a1')).toMatchObject({ detail: 'the note' })
+    const cleared = await h.item.PATCH(req('PATCH', { kind: 'detail', detail: null }), params('a1'))
+    expect('detail' in (await cleared.json())).toBe(false)
+    const theirs = await h.item.PATCH(req('PATCH', { kind: 'detail', detail: 'x' }), params('b1'))
+    expect(theirs.status).toBe(404)
+    expect('detail' in (f.raw('lists', 'b1') as object)).toBe(false)
+  })
+
   it('answers an unreadable body 400 bad request', async () => {
     const { h } = setup('ana')
     const res = await h.list.POST(req('POST', undefined, '{not json'))

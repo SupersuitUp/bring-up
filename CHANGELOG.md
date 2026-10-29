@@ -2,6 +2,18 @@
 
 Version convention: below 1.0, an addition is a patch and a breaking change is a minor (npm reads `^0.1.2` as 0.1.x only, so templates take a patch on their own and hold a minor for a person).
 
+## 0.1.3 (2026-10-29)
+
+- An item can carry an optional `detail`: a longer note under its words (a full message, links),
+  as private as the words. Trimmed, up to `AGENDA_DETAIL_MAX` (4,000) characters; blank means none,
+  and an item without one stores no `detail` field, so existing records read exactly as before.
+- `POST { text, detail? }` on the list and agent routes adds one; `PATCH { kind: 'detail', detail }`
+  sets it, and an empty string or null clears it. New rules `validateAgendaDetail` and
+  `withAgendaDetail`.
+- `AgendaList` shows a Details button under an item that has one; a tap opens the note in place,
+  line breaks kept and http(s) addresses clickable. `DetailText` is exported from the client entry
+  for an app's own item page.
+
 ## 0.1.2 (2026-10-01)
 
 - A host's `isRefusal` now ADDS to the package's own refusals instead of replacing them. Before,
